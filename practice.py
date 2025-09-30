@@ -1,6 +1,7 @@
 from nba_api.stats.static import teams
+from nba_api.stats.static import players
+import pandas as pd
 
-nba_teams = teams.get_teams()
-print(f"Number of NBA teams: {len(nba_teams)}")
-for team in nba_teams:
-    print(team['id'], team['full_name'])
+df = pd.read_parquet('player_game_logs_2024-25_TEST.parquet')
+
+print(df.head())
