@@ -1,2 +1,5 @@
 # Ignore Parquet files
 *.parquet
+
+# Ignore Testing files
+practice
