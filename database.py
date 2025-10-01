@@ -5,7 +5,6 @@ from nba_api.stats.endpoints import playergamelog
 from nba_api.stats.endpoints import commonplayerinfo
 import time
 from requests.exceptions import ReadTimeout, ConnectionError
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 #grab all active players
 nba_players = players.get_active_players()
@@ -23,10 +22,12 @@ def fetch_player_stats(player_id: int, season: str, retries: int = 3, timeoue: i
             stats_df = player_stats.get_data_frames()[0]
             if stats_df.empty:
                 return None #no games this season
-            desired = ['GAME_DATE', 'MATCHUP', 'PTS', 'AST', 'REB']
+            desired = ['Game_ID', 'GAME_DATE', 'MATCHUP', 'PTS', 'AST', 'REB', 'PLUS_MINUS', 'MIN', 'FGA', 'FTA']
             selected = stats_df[desired].copy()
             selected.insert(0, 'PLAYER_ID', player_id)
             selected.insert(1, 'PLAYER_NAME', player_name)
+            selected['GAME_DATE'] = pd.to_datetime(selected['GAME_DATE'], format='%b %d, %Y')
+            selected.rename(columns={'Game_ID': 'GAME_ID'}, inplace=True)
             print(f"Successfully retrieved stats for player ID {player_id}, player Name {player_name}")
             return selected
         except (ReadTimeout, ConnectionError) as e:
@@ -44,7 +45,7 @@ for player in nba_players:
     player_stats = fetch_player_stats(player['id'], season='2024-25')
     if player_stats is not None:
         table = pd.concat([table, player_stats], ignore_index=True)
-    time.sleep(0.35) #pause to avoid rate limiting
+    time.sleep(0.3) #pause to avoid rate limiting
     
 table.to_parquet('player_game_logs_2024-25_TEST.parquet', index=False)
 print(table)

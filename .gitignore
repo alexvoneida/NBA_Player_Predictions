@@ -2,4 +2,4 @@
 *.parquet
 
 # Ignore Testing files
-practice
+TEST.py
