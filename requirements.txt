@@ -1,0 +1,8 @@
+torch
+torchvision
+pandas
+numpy
+pyarrow
+nba_api
+requests
+scikit-learn
