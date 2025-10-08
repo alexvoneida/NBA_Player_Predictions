@@ -1,5 +1,9 @@
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from nba_api.stats.endpoints import boxscoreadvancedv3 as boxscore
+from nba_api.stats.endpoints import teamgamelog
+from nba_api.stats.static import teams
+import time
 
 def MIN_last5(df_last5: pd.DataFrame) -> float:
     '''Calculate the average minutes played over the last 5 games for a specific player.'''
@@ -54,7 +58,13 @@ def PLUS_MINUS_last5(df_last5: pd.DataFrame) -> float:
     '''Calculate the average plus-minus over the last 5 games for a specific player.'''
     if df_last5.empty:
         return 0.0
-    return df_last5['PLUS_MINUS'].mean()
+    return df_last5['PLUS_MINUS'].mean()       
+
+def FG_PCT_last5(df_last5: pd.DataFrame) -> float:
+    '''Calculate the average field goal percentage over the last 5 games for a specific player.'''   
+    if df_last5.empty:
+        return 0.0
+    return df_last5['FG_PCT'].mean()
 
 def GET_LAST_N_GAMES(df: pd.DataFrame, n: int, player_id: int, game_id: str):
     '''Retrieve the last N games for a specific player before a given game ID.'''
@@ -65,7 +75,7 @@ def GET_LAST_N_GAMES(df: pd.DataFrame, n: int, player_id: int, game_id: str):
     return player_games.head(n)
 
 def main():
-    df = pd.read_parquet('player_game_logs_2024-25_TEST.parquet')
+    df = pd.read_parquet('player_game_logs_2024-25_FINAL.parquet')
     
     for row in df.itertuples():
         print(f"Processing row {row.Index + 1}")
@@ -82,8 +92,9 @@ def main():
         df.at[row.Index, 'IS_HOME'] = IS_HOME(df[df['GAME_ID'] == game_id])
         df.at[row.Index, 'DAYS_REST'] = DAYS_REST(df_last2)
         df.at[row.Index, 'PLUS_MINUS_last5'] = PLUS_MINUS_last5(df_last5)
+        df.at[row.Index, 'FG_PCT_last5'] = FG_PCT_last5(df_last5)
         
-    df.to_parquet('player_game_logs_with_features_2024-25_TEST.parquet', index=False)
+    df.to_parquet('player_game_logs_with_features_2024-25_FINAL.parquet', index=False)
     print(df)
         
 if __name__ == "__main__":
