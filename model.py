@@ -9,8 +9,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import xgboost as xgb
 
 #prepare data
-df1 = pd.read_parquet('final_database_2024-25.parquet')
-df2 = pd.read_parquet('final_database_2023-24.parquet')
+df1 = pd.read_parquet('parquet/final_database_2024-25.parquet')
+df2 = pd.read_parquet('parquet/final_database_2023-24.parquet')
 df1 = df1.dropna()
 df2 = df2.dropna()
 
