@@ -15,12 +15,12 @@ def fetch_game_stats(df: pd.DataFrame) -> pd.DataFrame:
     return output
     
 def main():
-    df = pd.read_parquet('player_game_logs_with_features_2023-24_FINAL.parquet')
-    game_df = pd.read_parquet('game_stats_2023-24_FINAL.parquet')
+    df = pd.read_parquet('../parquet/player_game_logs_with_features_2023-24_FINAL.parquet')
+    game_df = pd.read_parquet('../parquet/game_stats_2023-24_FINAL.parquet')
     game_stats = fetch_game_stats(df)
     print(game_stats.head())
     game_df = pd.concat([game_df, game_stats], ignore_index=True)
-    game_df.to_parquet('game_stats_2023-24_FINAL.parquet')
+    game_df.to_parquet('../parquet/game_stats_2023-24_FINAL.parquet')
     
 if __name__ == "__main__":
     main()

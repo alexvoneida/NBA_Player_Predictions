@@ -48,5 +48,5 @@ for player in nba_players:
         table = pd.concat([table, player_stats], ignore_index=True)
     time.sleep(0.3) #pause to avoid rate limiting
     
-table.to_parquet('player_game_logs_2023-24_FINAL.parquet', index=False)
+table.to_parquet('../parquet/player_game_logs_2023-24_FINAL.parquet', index=False)
 print(table)
