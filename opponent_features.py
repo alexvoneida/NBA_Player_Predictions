@@ -48,8 +48,15 @@ def OPP_PACE_last5(game_stats_df: pd.DataFrame) -> float:
     return round(total / 5, 2)
 
 def main():
-    features_df = pd.read_parquet('player_game_logs_with_features_2024-25_FINAL.parquet')
-    game_stats_df = pd.read_parquet('game_stats_2024-25_FINAL.parquet')
+    features_df = pd.read_parquet('player_game_logs_with_features_2023-24_FINAL.parquet')
+    game_stats_df = pd.read_parquet('game_stats_2023-24_FINAL.parquet')
+    
+    game_stats_df.rename(
+        columns={
+        "teamTricode":'TEAM_ABBREVIATION',
+        "gameId":'GAME_ID'
+            }, inplace=True   
+        )
     
     game_stats_df = game_stats_df.sort_values(['TEAM_ABBREVIATION', 'GAME_ID'])
 
@@ -88,7 +95,7 @@ def main():
         how='left'
     )
     
-    features_df.to_parquet('final_database_2024-25.parquet')
+    features_df.to_parquet('final_database_2023-24.parquet')
 
 if __name__ == '__main__':
     main()

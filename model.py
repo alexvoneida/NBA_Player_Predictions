@@ -6,18 +6,22 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import xgboost as xgb
 
 #prepare data
 df1 = pd.read_parquet('final_database_2024-25.parquet')
+df2 = pd.read_parquet('final_database_2023-24.parquet')
 df1 = df1.dropna()
+df2 = df2.dropna()
 
-place_df = df1.sort_values(['GAME_DATE'])
-split_index1 = int(len(place_df) * 0.4)
-split_index2 = int(len(place_df) * 0.6)
+place_df = df1.sort_values('GAME_DATE')
+place_df2 = df2.sort_values('GAME_DATE')
+split_index1 = int(len(place_df) * 0.6)
+
 
 train_df = place_df.iloc[:split_index1]
-train_df = pd.concat([train_df, place_df.iloc[split_index1:split_index2]])
-test_df = place_df.iloc[split_index1:split_index2]
+train_df = pd.concat([train_df, place_df])
+test_df = place_df.iloc[split_index1:]
 
 features = ['MIN_last5', 'PTS_last5', 'REB_last5', 'AST_last5', 'FG_PCT_last5', 'USAGE_last5', 'IS_HOME', 'DAYS_REST', 'PLUS_MINUS_last5', 'offensiveRating_last5', 'defensiveRating_last5', 'pace_last5', 'OPP_offensiveRating_last5', 'OPP_defensiveRating_last5', 'OPP_pace_last5']
 
@@ -101,4 +105,11 @@ mae = mean_absolute_error(true_list, preds_list)
 rmse = np.sqrt(mean_squared_error(true_list, preds_list))
 r2 = r2_score(true_list, preds_list)
 
-print(f"PyTorch NN → MAE: {mae:.2f}, RMSE: {rmse:.2f}, R²: {r2:.2f}")
+print(f"PyTorch NN → MAE: {mae:.4f}")
+
+'''
+PTS MAE on test: 4.75
+AST MAE on test: 1.3713
+REB MAE on test: 2.0345
+FG_PCT MAE on test: 0.1837
+'''
