@@ -5,34 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import xgboost as xgb
-
-#prepare data
-df1 = pd.read_parquet('parquet/final_database_2024-25.parquet')
-df2 = pd.read_parquet('parquet/final_database_2023-24.parquet')
-df1 = df1.dropna()
-df2 = df2.dropna()
-
-place_df = df1.sort_values('GAME_DATE')
-place_df2 = df2.sort_values('GAME_DATE')
-split_index1 = int(len(place_df) * 0.6)
-
-
-train_df = place_df.iloc[:split_index1]
-train_df = pd.concat([train_df, place_df])
-test_df = place_df.iloc[split_index1:]
-
-features = ['MIN_last5', 'PTS_last5', 'REB_last5', 'AST_last5', 'FG_PCT_last5', 'USAGE_last5', 'IS_HOME', 'DAYS_REST', 'PLUS_MINUS_last5', 'offensiveRating_last5', 'defensiveRating_last5', 'pace_last5', 'OPP_offensiveRating_last5', 'OPP_defensiveRating_last5', 'OPP_pace_last5']
-
-X_train = train_df[features].values.astype(np.float32)
-y_train = train_df['FG_PCT'].values.astype(np.float32)
-
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-
-X_test = test_df[features].values.astype(np.float32)
-y_test = test_df['FG_PCT'].values.astype(np.float32)
+from sklearn.metrics import mean_absolute_error
 
 #convert to pytorch datasets
 class NBAPlayerDataset(Dataset):
@@ -43,17 +16,7 @@ class NBAPlayerDataset(Dataset):
         return len(self.X)
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
-
-#define datasets and dataloaders
-train_ds = NBAPlayerDataset(X_train, y_train)
-test_ds = NBAPlayerDataset(X_test, y_test)
-
-train_loader = DataLoader(train_ds, batch_size=128, shuffle=True)
-test_loader = DataLoader(test_ds, batch_size=128, shuffle=False)
-
-#device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-#print(f'Using device: {device}')
-
+    
 #define model
 class NBALinearRegressionModel(nn.Module):
     def __init__(self, input_dim):
@@ -70,46 +33,75 @@ class NBALinearRegressionModel(nn.Module):
     def forward(self, x):
         return self.net(x)
     
-model = NBALinearRegressionModel(input_dim=len(features))#.to(device)
+def main():
+    #prepare data
+    df1 = pd.read_parquet('parquet/final_database_2024-25.parquet')
+    df2 = pd.read_parquet('parquet/final_database_2023-24.parquet')
+    df1 = df1.dropna()
+    df2 = df2.dropna()
 
-#define loss and optimizer
-criterion = nn.L1Loss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    place_df = df1.sort_values('GAME_DATE')
+    place_df2 = df2.sort_values('GAME_DATE')
+    split_index1 = int(len(place_df) * 0.6)
 
-#training loop
-epochs = 50
-for epoch in range(epochs):
-    model.train()
-    train_loss = 0
-    for X_batch, y_batch in train_loader:
-        optimizer.zero_grad()
-        preds = model(X_batch)
-        loss = criterion(preds, y_batch)
-        loss.backward()
-        optimizer.step()
-        train_loss += loss.item()
-    avg_train_loss = train_loss / len(train_loader)
-    print(f'Epoch {epoch+1}/{epochs}, Training Loss: {avg_train_loss:.4f}')
+
+    train_df = place_df
+    train_df = pd.concat([train_df, place_df2])
+    test_df = place_df.iloc[split_index1:]
+
+    features = ['MIN_last5', 'PTS_last5', 'REB_last5', 'AST_last5', 'FG_PCT_last5', 'USAGE_last5', 'IS_HOME', 'DAYS_REST', 'PLUS_MINUS_last5', 'offensiveRating_last5', 'defensiveRating_last5', 'pace_last5', 'OPP_offensiveRating_last5', 'OPP_defensiveRating_last5', 'OPP_pace_last5']
+
+    X_train = train_df[features].values.astype(np.float32)
+    y_train = train_df['FG_PCT'].values.astype(np.float32)
+
+    X_test = test_df[features].values.astype(np.float32)
+    y_test = test_df['FG_PCT'].values.astype(np.float32)
+
+    #define datasets and dataloaders
+    train_ds = NBAPlayerDataset(X_train, y_train)
+    test_ds = NBAPlayerDataset(X_test, y_test)
+
+    train_loader = DataLoader(train_ds, batch_size=128, shuffle=True)
+    test_loader = DataLoader(test_ds, batch_size=128, shuffle=False)
+
+    #device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    #print(f'Using device: {device}')
+        
+    model = NBALinearRegressionModel(input_dim=len(features))#.to(device)
+
+    #define loss and optimizer
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    #training loop
+    epochs = 50
+    for epoch in range(epochs):
+        model.train()
+        train_loss = 0
+        for X_batch, y_batch in train_loader:
+            optimizer.zero_grad()
+            preds = model(X_batch)
+            loss = criterion(preds, y_batch)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+        avg_train_loss = train_loss / len(train_loader)
+        print(f'Epoch {epoch+1}/{epochs}, Training Loss: {avg_train_loss:.4f}')
+        
+    #evaluation
+    model.eval()
+    preds_list, true_list = [], []
+
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            preds = model(X_batch)
+            preds_list.extend(preds.numpy().flatten())
+            true_list.extend(y_batch.numpy().flatten())
+
+    mae = mean_absolute_error(true_list, preds_list)
+
+    print(f"PyTorch NN → MAE: {mae:.4f}")
+    torch.save(model, 'models/fg_pct_model.pth')
     
-#evaluation
-model.eval()
-preds_list, true_list = [], []
-
-with torch.no_grad():
-    for X_batch, y_batch in test_loader:
-        preds = model(X_batch)
-        preds_list.extend(preds.numpy().flatten())
-        true_list.extend(y_batch.numpy().flatten())
-
-mae = mean_absolute_error(true_list, preds_list)
-rmse = np.sqrt(mean_squared_error(true_list, preds_list))
-r2 = r2_score(true_list, preds_list)
-
-print(f"PyTorch NN → MAE: {mae:.4f}")
-
-'''
-PTS MAE on test: 4.75
-AST MAE on test: 1.3713
-REB MAE on test: 2.0345
-FG_PCT MAE on test: 0.1837
-'''
+if __name__ == "__main__":
+    main()
